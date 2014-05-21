@@ -31,7 +31,10 @@ namespace RPuller
 
         private void StartFetchButton_Click(object sender, RoutedEventArgs e)
         {
-            Controller.StartFetch();
+            string sub = this.SubredditBox.Text;
+            int amount = Convert.ToInt32(this.AmountBox.Text);
+
+            Controller.StartFetch(sub, amount);
         }
     }
 }

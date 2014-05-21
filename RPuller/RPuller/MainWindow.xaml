@@ -1,26 +1,28 @@
 ﻿<Window x:Class="RPuller.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MainWindow" Height="424.277" Width="589.148">
+        Title="MainWindow" Height="425" Width="590" ResizeMode="NoResize">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="40" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="20" />
+            <RowDefinition Height="24" />
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-        <StackPanel Orientation="Horizontal">
-            <Button Grid.Row="0" Grid.Column="0" Name="StartFetchButton" Content="StartFetch" Click="StartFetchButton_Click"
+        <StackPanel Grid.Row="0" Orientation="Horizontal">
+            <Button Name="StartFetchButton" Content="StartFetch" Click="StartFetchButton_Click"
                     Padding="10,0" Margin="10,10" />
-        </StackPanel>
-        
-        <StackPanel Grid.Row="1" Grid.Column="0" Name="ResponseList" ScrollViewer.CanContentScroll="True">
+            <TextBox Name="SubredditBox"
+                Width="200" Margin="10,10" />
             
+            <TextBox Name="AmountBox"
+                Width="40" Margin="10,10" />
         </StackPanel>
 
-        <StatusBar Grid.Row="2" Grid.Column="0" Height="20">
+        <ScrollViewer Grid.Row="1" Name="ResponseListScrollView">
+            <StackPanel Name="ResponseList" />
+        </ScrollViewer>
+        
+        <StatusBar Grid.Row="2" VerticalAlignment="Center">
             <StatusBar.ItemsPanel>
                 <ItemsPanelTemplate>
                     <Grid>
@@ -43,7 +45,7 @@
             </StatusBarItem>
             <Separator Grid.Column="3" />
             <StatusBarItem Grid.Column="4">
-                <ProgressBar Name="CurrentProgress" Minimum="0" Maximum="100" Value="50" Width="90" Height="16" />
+                <ProgressBar Name="CurrentProgress" Minimum="0" Maximum="100" Value="0" Width="90" Height="16" />
             </StatusBarItem>
         </StatusBar>
 
