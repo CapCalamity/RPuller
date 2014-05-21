@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -32,9 +33,40 @@ namespace RPuller
         private void StartFetchButton_Click(object sender, RoutedEventArgs e)
         {
             string sub = this.SubredditBox.Text;
-            int amount = Convert.ToInt32(this.AmountBox.Text);
 
-            Controller.StartFetch(sub, amount);
+            Controller.StartFetch(sub);
+        }
+
+        private void SaveContentCheckbox_Click(object sender, RoutedEventArgs e)
+        {
+            var checkbox = (CheckBox)sender;
+            Controller.Save = checkbox.IsChecked == null ? false : checkbox.IsChecked.Value;
+        }
+
+        private void DLDelayBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            try
+            {
+                var textbox = (TextBox)sender;
+                Controller.DLDelay = Convert.ToInt32(textbox.Text);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+            }
+        }
+
+        private void AmountBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            try
+            {
+                var textbox = (TextBox)sender;
+                Controller.AmountToFetch = Convert.ToInt32(textbox.Text);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+            }
         }
     }
 }

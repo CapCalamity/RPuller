@@ -11,22 +11,27 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using System.Diagnostics;
+using System.Windows.Media;
 
 namespace RPuller
 {
     class Controller
     {
         private MainWindow MainWindow { get; set; }
-        private bool FetchComplete { get; set; }
+        internal bool Save { get; set; }
+        internal int DLDelay { get; set; }
+        internal int AmountToFetch { get; set; }
 
         public Controller(MainWindow main)
         {
             MainWindow = main;
-            FetchComplete = true;
             ImageHistory.Initialize();
+            DLDelay = 10;
+            AmountToFetch = 1;
+            Save = false;
         }
 
-        public void StartFetch(string subReddit, int amount)
+        public void StartFetch(string subReddit)
         {
             Thread t = new Thread(new ThreadStart(() =>
             {
@@ -37,7 +42,7 @@ namespace RPuller
 
                 List<string> queue = new List<string>();
                 int current = 0;
-                int contingousAmount = amount;
+                int contingousAmount = AmountToFetch;
 
                 while (true)
                 {
@@ -72,15 +77,64 @@ namespace RPuller
 
                     DisplayImages(queue);
 
-                    for (int i = 30; i > 0; i--)
-                    {
-                        Debug.WriteLine(i);
-                        Thread.Sleep(1000);
-                    }
+                    if (Save)
+                        SaveImages(queue);
+
+                    Thread.Sleep(DLDelay);
                 }
             }));
             t.SetApartmentState(ApartmentState.STA);
             t.Start();
+        }
+
+        private void SaveImages(IEnumerable<string> uris)
+        {
+            foreach (string uri in uris)
+            {
+                var image = new BitmapImage(new Uri(uri));
+                image.DownloadCompleted += (sender, args) =>
+                {
+                    string absolute = image.UriSource.AbsoluteUri;
+
+                    Guid id = Guid.NewGuid();
+                    BitmapEncoder encoder = null;
+                    string location = "";
+
+                    if (absolute.EndsWith("jpg") || absolute.EndsWith("jpeg"))
+                    {
+                        encoder = new JpegBitmapEncoder();
+                        location = id.ToString() + ".jpg";
+                    }
+                    else if (absolute.EndsWith("png"))
+                    {
+                        encoder = new PngBitmapEncoder();
+                        location = id.ToString() + ".png";
+                    }
+                    else if (absolute.EndsWith("bmp"))
+                    {
+                        encoder = new BmpBitmapEncoder();
+                        location = id.ToString() + ".bmp";
+                    }
+                    else if (absolute.EndsWith("gif"))
+                    {
+                        encoder = new GifBitmapEncoder();
+                        location = id.ToString() + ".gif";
+                    }
+                    else
+                    {
+                        encoder = new BmpBitmapEncoder();
+                        location = id.ToString() + ".bmp";
+                    }
+
+                    encoder.Frames.Add(BitmapFrame.Create((BitmapImage)image));
+
+                    using (var filestream = new FileStream(location, FileMode.Create))
+                    {
+                        encoder.Save(filestream);
+                        filestream.Flush();
+                    }
+                };
+            }
         }
 
         private void DisplayImages(IEnumerable<string> uris)
@@ -94,7 +148,7 @@ namespace RPuller
             {
                 MainWindow.ResponseList.Dispatcher.Invoke(() =>
                 {
-                    SetProgress((int) (cur += (int) (step + 0.5d)));
+                    SetProgress((int)(cur += (int)(step + 0.5d)));
                     AddItem(url);
                     MainWindow.ResponseListScrollView.ScrollToBottom();
                 }, System.Windows.Threading.DispatcherPriority.Normal);
@@ -114,9 +168,10 @@ namespace RPuller
         {
             MainWindow.ResponseList.Dispatcher.Invoke(() =>
             {
+                var bitImg = new BitmapImage(new Uri(url));
                 SetCurrentStatus(url, "Inserting Image");
                 var img = new Image();
-                img.Source = new BitmapImage(new Uri(url));
+                img.Source = bitImg;
                 img.MaxHeight = 250;
                 MainWindow.ResponseList.Children.Add(img);
             });
