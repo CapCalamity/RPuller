@@ -18,25 +18,27 @@
             <StackPanel Orientation="Horizontal" Margin="5,4,5,4">
                 <Label Content="SubReddit:" VerticalAlignment="Center" />
                 <TextBox Name="SubredditBox" VerticalAlignment="Center"
-                        Width="200" />
-                
-                <CheckBox Name="SaveContentCheckbox" Content="Save?" Click="SaveContentCheckbox_Click"
-                          VerticalAlignment="Center" Margin="10,0,0,0"/>
+                         Width="200" />
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="5,4,5,4">
                 <Label Content="Simoultanious Fetch" VerticalAlignment="Center" />
-                <TextBox Name="AmountBox" VerticalAlignment="Center" TextChanged="AmountBox_TextChanged"
-                        Width="40" />
+                <TextBox Name="AmountBox"
+                         VerticalAlignment="Center" 
+                         TextChanged="AmountBox_TextChanged"
+                         Width="40" />
                 
                 <Label Content="Delay After DL"
                        Margin="10,0,0,0"/>
-                <TextBox Name="DLDelayBox" Width="100" VerticalAlignment="Center" TextChanged="DLDelayBox_TextChanged" />
+                <TextBox Name="DLDelayBox"
+                         Width="100" 
+                         VerticalAlignment="Center" 
+                         TextChanged="DLDelayBox_TextChanged" />
             </StackPanel>
         </StackPanel>
 
         <ScrollViewer Grid.Row="1" Name="ResponseListScrollView">
-            <StackPanel Name="ResponseList" />
+            <TextBlock Name="ResponseList" />
         </ScrollViewer>
 
         <StatusBar Grid.Row="2" VerticalAlignment="Center">
@@ -44,7 +46,7 @@
                 <ItemsPanelTemplate>
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="100" />
+                            <ColumnDefinition Width="Auto" MinWidth="120" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />

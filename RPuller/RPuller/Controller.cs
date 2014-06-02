@@ -18,7 +18,6 @@ namespace RPuller
     class Controller
     {
         private MainWindow MainWindow { get; set; }
-        internal bool Save { get; set; }
         internal int DLDelay { get; set; }
         internal int AmountToFetch { get; set; }
 
@@ -28,7 +27,6 @@ namespace RPuller
             ImageHistory.Initialize();
             DLDelay = 10;
             AmountToFetch = 1;
-            Save = false;
         }
 
         public void StartFetch(string subReddit)
@@ -36,144 +34,93 @@ namespace RPuller
             Thread t = new Thread(new ThreadStart(() =>
             {
                 var reddit = new Reddit();
-                Subreddit sub = reddit.GetSubreddit(subReddit);
-                string[] domains = { "i.imgur.com", "imgur.com" };
-                string[] types = { ".jpg", ".gif", ".png", ".bmp" };
+                List<Subreddit> subs = StringToSubreddits(subReddit).ToList();
+                string[] imgurDomains = { "i.imgur.com", "imgur.com" };
+                //string[] types = { ".jpg", ".gif", ".png", ".bmp" };
 
-                List<string> queue = new List<string>();
+                List<PulledImage> queue = new List<PulledImage>();
                 int current = 0;
                 int contingousAmount = AmountToFetch;
-
-                while (true)
+                bool hit = false;
+                
+                try
                 {
-                    queue.Clear();
-
-                    foreach (var post in sub.Hot.Skip(current).Take(contingousAmount))
+                    while (true)
                     {
-                        SetCurrentStatus(post.Url.AbsoluteUri, "Fetching Link");
-                        var uris = new List<string>();
-
-                        if (domains.Any(d => post.Domain.EndsWith(d)))
+                        foreach (Subreddit sub in subs)
                         {
-                            var imgurResolver = new ImgurResolver(post.Url);
-                            uris.AddRange(imgurResolver.ResolveURI());
+                            queue.Clear();
+
+                            foreach (var post in sub.Hot.Skip(current).Take(contingousAmount))
+                            {
+                                SetCurrentStatus(post.Url.AbsoluteUri, "Fetching Link");
+
+                                if (imgurDomains.Any(d => post.Domain.EndsWith(d)))
+                                {
+                                    hit = true;
+                                    var imgurResolver = new ImgurResolver(post.Url);
+
+                                    string[] resolvedUris = imgurResolver.ResolveURI().ToArray();
+                                    foreach (string res in resolvedUris)
+                                        queue.Add(new PulledImage(res));
+                                }
+
+                                PutLine(post.Url.AbsoluteUri);
+                            }
+
+                            current += contingousAmount;
+
+                            SaveImages(queue);
+
+                            if (hit)
+                            {
+                                for (int i = DLDelay; i >= 0; i--)
+                                {
+                                    SetCurrentStatus("Sleeping " + i + "/" + DLDelay, "After-Download-Delay");
+                                    Thread.Sleep(1000);
+                                }
+                            }
                         }
-                        else
-                            uris.Add(post.Url.AbsoluteUri);
-
-                        if (!ImageHistory.AddRange(uris))
-                            foreach (string item in uris)
-                                if (!ImageHistory.Add(item))
-                                    Debug.WriteLine(item + " could not be added, already contained");
-                                else
-                                    queue.Add(item);
-                        else
-                            queue.AddRange(uris);
-
-                        Debug.WriteLine(post.Url.AbsoluteUri);
                     }
-
-                    current += contingousAmount;
-
-                    DisplayImages(queue);
-
-                    if (Save)
-                        SaveImages(queue);
-
-                    Thread.Sleep(DLDelay);
+                }
+                catch (Exception e)
+                {
+                    PutLine(e.Message);
                 }
             }));
             t.SetApartmentState(ApartmentState.STA);
             t.Start();
         }
 
-        private void SaveImages(IEnumerable<string> uris)
+        private IEnumerable<Subreddit> StringToSubreddits(string link)
         {
-            foreach (string uri in uris)
+            Reddit red = new Reddit();
+            List<Subreddit> subs = new List<Subreddit>();
+
+            string[] splitted = link.Split(new char[] { '+' });
+
+            foreach(string split in splitted)
+                subs.Add(red.GetSubreddit(split));
+
+            return subs.AsEnumerable();
+        }
+
+        private void SaveImages(IEnumerable<PulledImage> pulledImages)
+        {
+            foreach (PulledImage pulled in pulledImages)
             {
-                var image = new BitmapImage(new Uri(uri));
-                image.DownloadCompleted += (sender, args) =>
-                {
-                    string absolute = image.UriSource.AbsoluteUri;
-
-                    Guid id = Guid.NewGuid();
-                    BitmapEncoder encoder = null;
-                    string location = "";
-
-                    if (absolute.EndsWith("jpg") || absolute.EndsWith("jpeg"))
-                    {
-                        encoder = new JpegBitmapEncoder();
-                        location = id.ToString() + ".jpg";
-                    }
-                    else if (absolute.EndsWith("png"))
-                    {
-                        encoder = new PngBitmapEncoder();
-                        location = id.ToString() + ".png";
-                    }
-                    else if (absolute.EndsWith("bmp"))
-                    {
-                        encoder = new BmpBitmapEncoder();
-                        location = id.ToString() + ".bmp";
-                    }
-                    else if (absolute.EndsWith("gif"))
-                    {
-                        encoder = new GifBitmapEncoder();
-                        location = id.ToString() + ".gif";
-                    }
-                    else
-                    {
-                        encoder = new BmpBitmapEncoder();
-                        location = id.ToString() + ".bmp";
-                    }
-
-                    encoder.Frames.Add(BitmapFrame.Create((BitmapImage)image));
-
-                    using (var filestream = new FileStream(location, FileMode.Create))
-                    {
-                        encoder.Save(filestream);
-                        filestream.Flush();
-                    }
-                };
+                pulled.Download();
+                ImageHistory.Add(pulled.Link);
             }
         }
 
-        private void DisplayImages(IEnumerable<string> uris)
+        private void PutLine(object line)
         {
-            ClearList();
-
-            int cur = 0;
-            double step = 100.0 / uris.Count();
-
-            foreach (string url in uris)
-            {
-                MainWindow.ResponseList.Dispatcher.Invoke(() =>
-                {
-                    SetProgress((int)(cur += (int)(step + 0.5d)));
-                    AddItem(url);
-                    MainWindow.ResponseListScrollView.ScrollToBottom();
-                }, System.Windows.Threading.DispatcherPriority.Normal);
-                Thread.Sleep(2000);
-            }
-        }
-
-        private void ClearList()
-        {
+            var log = Log.Get();
+            log.PutLine(line);
             MainWindow.ResponseList.Dispatcher.Invoke(() =>
             {
-                MainWindow.ResponseList.Children.Clear();
-            });
-        }
-
-        private void AddItem(string url)
-        {
-            MainWindow.ResponseList.Dispatcher.Invoke(() =>
-            {
-                var bitImg = new BitmapImage(new Uri(url));
-                SetCurrentStatus(url, "Inserting Image");
-                var img = new Image();
-                img.Source = bitImg;
-                img.MaxHeight = 250;
-                MainWindow.ResponseList.Children.Add(img);
+                MainWindow.ResponseList.Text += line.ToString() + "\r\n";
             });
         }
 
@@ -181,8 +128,8 @@ namespace RPuller
         {
             MainWindow.Dispatcher.Invoke(() =>
             {
-                MainWindow.CurrentAction.Text = status;
-                MainWindow.CurrentFile.Text = statusGroup;
+                MainWindow.CurrentAction.Text = statusGroup;
+                MainWindow.CurrentFile.Text = status;
             });
         }
 

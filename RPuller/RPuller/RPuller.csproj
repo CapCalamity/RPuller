@@ -64,6 +64,8 @@
     </ApplicationDefinition>
     <Compile Include="History.cs" />
     <Compile Include="IResolver.cs" />
+    <Compile Include="Log.cs" />
+    <Compile Include="PulledImage.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

@@ -26,8 +26,13 @@ namespace RPuller
         public MainWindow()
         {
             InitializeComponent();
-
             Controller = new Controller(this);
+
+            DLDelayBox.Text = "10";
+            Controller.DLDelay = 10;
+            AmountBox.Text = "10";
+            Controller.AmountToFetch = 10;
+            SubredditBox.Text = "gaming";
         }
 
         private void StartFetchButton_Click(object sender, RoutedEventArgs e)
@@ -35,12 +40,6 @@ namespace RPuller
             string sub = this.SubredditBox.Text;
 
             Controller.StartFetch(sub);
-        }
-
-        private void SaveContentCheckbox_Click(object sender, RoutedEventArgs e)
-        {
-            var checkbox = (CheckBox)sender;
-            Controller.Save = checkbox.IsChecked == null ? false : checkbox.IsChecked.Value;
         }
 
         private void DLDelayBox_TextChanged(object sender, TextChangedEventArgs e)
